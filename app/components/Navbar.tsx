@@ -1,7 +1,9 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuthStore } from "../store/authStore";
 
 type FileData = {
   id: number;
@@ -19,6 +21,12 @@ type NavbarProps = {
 
 export default function Navbar({ data }: NavbarProps) {
   const [search, setSearch] = useState("");
+  const router = useRouter();
+
+
+  const user = useAuthStore((state)=>state.user);
+  const username = user?.username;
+  const symbol = username?.charAt(0).toUpperCase();
 
   const suggestions = data.filter((file) =>
     file.name.toLowerCase().includes(search.toLowerCase())
@@ -84,11 +92,11 @@ export default function Navbar({ data }: NavbarProps) {
 
           </div>
 
-          <div className="flex size-11 items-center justify-center rounded-full bg-amber-700">
+          <button onClick={()=>router.push("/profile")}  className="flex size-11 items-center justify-center rounded-full bg-amber-700">
             <span className="relative -top-0.5 font-medium text-2xl leading-none text-amber-300">
-              A
+              {symbol}
             </span>
-          </div>
+          </button>
 
         </div>
 

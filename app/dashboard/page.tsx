@@ -2,8 +2,10 @@
 
 import { Plus } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Files from "./files";
 import GetTable from "./table";
 import { useEffect, useState } from "react";
+import { useAuthStore } from "../store/authStore";
 
 
 type FileData = {
@@ -18,6 +20,8 @@ type FileData = {
 
 const Dashboard = () => {
   const [data, setData] = useState<FileData[]>([]);
+
+  const user = useAuthStore((state)=>state.user);
 
   useEffect(() => {
     async function getData() {
@@ -39,11 +43,14 @@ const Dashboard = () => {
       <div className="flex min-h-0 flex-1">
 
         {/* Sidebar */}
-        <div className="w-xs shrink-0 overflow-y-auto bg-ink p-5">
-          <button className="flex w-full items-center justify-center rounded-xl bg-red-600 p-3">
+        <div className="w-64 shrink-0 overflow-y-auto bg-ink p-8">
+          <button className="flex flex-col items-center justify-center rounded-xl bg-red-600 p-3">
             <Plus />
             <span className="ml-2">Upload</span>
           </button>
+          <h1 className="text-2xl pl-6 pt-3 pb-3 mt-3 text-black bg-amber-300 rounded-xl"> Home</h1>
+          <h1 className="text-2xl pl-6 pt-3 pb-3 mt-3 text-black bg-amber-300 rounded-xl"> Stared</h1>
+          
 
           {/* Sidebar content */}
         </div>
@@ -51,7 +58,7 @@ const Dashboard = () => {
         {/* Main content */}
         <div className="min-w-0 flex-1 overflow-y-auto hide-scrollbar bg-panel">
           <h3 className="p-6 text-3xl">
-            Good morning, Alex
+            Good morning, {user?.username}
           </h3>
 
           <GetTable data={data} />
