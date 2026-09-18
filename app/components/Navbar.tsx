@@ -5,28 +5,28 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuthStore } from "../store/authStore";
 
-type FileData = {
-  id: number;
+type File = {
+  id: string;
   name: string;
-  dateModified: string;
-  size: number;
-  type: string;
-  owner: string;
-  folder: string;
+  mine_type: string;
+  size: string;
+  created_at: string;
+  updated_at: string;
 };
 
 type NavbarProps = {
-  data: FileData[];
+  data: File[];
 };
 
 export default function Navbar({ data }: NavbarProps) {
   const [search, setSearch] = useState("");
+
   const router = useRouter();
 
+  const user = useAuthStore((state) => state.user);
 
-  const user = useAuthStore((state)=>state.user);
   const username = user?.username;
-  const symbol = username?.charAt(0).toUpperCase();
+  const symbol = username?.charAt(0).toUpperCase() || "?";
 
   const suggestions = data.filter((file) =>
     file.name.toLowerCase().includes(search.toLowerCase())
@@ -37,12 +37,14 @@ export default function Navbar({ data }: NavbarProps) {
       <div className="flex items-center px-6 py-4">
 
         {/* Logo */}
-        <div className="w-xs text-center">
+        <div className="w-xs text-center text-paper">
           Disk0
         </div>
 
-        {/* Search */}
-        <div className="ml-20 w-max flex flex-1 justify-between">
+        {/* Search + Profile */}
+        <div className="ml-20 flex flex-1 items-center justify-between">
+
+          {/* Search */}
           <div className="relative w-xl">
 
             {/* Search icon */}
@@ -51,7 +53,7 @@ export default function Navbar({ data }: NavbarProps) {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-fog"
             />
 
-            {/* Input */}
+            {/* Search input */}
             <input
               id="search"
               type="text"
@@ -70,14 +72,20 @@ export default function Navbar({ data }: NavbarProps) {
                   suggestions.map((file) => (
                     <div
                       key={file.id}
+                      onClick={() => {
+                        setSearch(file.name);
+                      }}
                       className="cursor-pointer border-b border-line px-4 py-3 last:border-b-0 hover:bg-signal/5"
                     >
-                      <p className="text-sm text-paper">
+                      {/* File name */}
+                      <p className="truncate text-sm text-paper">
                         {file.name}
                       </p>
 
+                      {/* File information */}
                       <p className="mt-1 text-xs text-fog">
-                        {file.folder} · {file.type}
+                        {file.mine_type} ·{" "}
+                        {new Date(file.updated_at).toLocaleDateString()}
                       </p>
                     </div>
                   ))
@@ -92,14 +100,17 @@ export default function Navbar({ data }: NavbarProps) {
 
           </div>
 
-          <button onClick={()=>router.push("/profile")}  className="flex size-11 items-center justify-center rounded-full bg-amber-700">
-            <span className="relative -top-0.5 font-medium text-2xl leading-none text-amber-300">
+          {/* Profile */}
+          <button
+            onClick={() => router.push("/profile")}
+            className="flex size-11 items-center justify-center rounded-full bg-amber-700 transition hover:bg-amber-600"
+          >
+            <span className="relative -top-0.5 text-2xl font-medium leading-none text-amber-300">
               {symbol}
             </span>
           </button>
 
         </div>
-
       </div>
     </header>
   );

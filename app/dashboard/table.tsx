@@ -1,20 +1,41 @@
-type FileData = {
-  id: number;
+type File = {
+  id: string;
   name: string;
-  dateModified: string;
-  size: number;
-  type: string;
-  owner: string;
-  folder: string;
+  mine_type: string;
+  size: string;
+  created_at: string;
+  updated_at: string;
 };
 
 type GetTableProps = {
-  data: FileData[];
+  data: File[];
+};
+
+const formatFileSize = (size: string) => {
+  const bytes = Number(size);
+
+  if (isNaN(bytes) || bytes === 0) {
+    return "0 B";
+  }
+
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(2)} KB`;
+  }
+
+  if (bytes < 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
 const GetTable = ({ data }: GetTableProps) => {
   return (
-    <div className="px-6">
+    <div className="px-6 pb-10">
       <table className="w-full table-fixed">
         <thead>
           <tr className="border-b border-line text-left text-sm text-fog">
@@ -30,14 +51,19 @@ const GetTable = ({ data }: GetTableProps) => {
               key={file.id}
               className="border-b border-line text-black odd:bg-amber-200 even:bg-amber-400"
             >
-              <td className="px-5 py-3">{file.name}</td>
-
-              <td className="py-3 text-black">
-                {new Date(file.dateModified).toLocaleDateString()}
+              {/* Name */}
+              <td className="truncate px-5 py-3">
+                {file.name}
               </td>
 
+              {/* Date modified */}
               <td className="py-3 text-black">
-                {(file.size / (1024 * 1024)).toFixed(2)} MB
+                {new Date(file.updated_at).toLocaleDateString()}
+              </td>
+
+              {/* File size */}
+              <td className="py-3 text-black">
+                {formatFileSize(file.size)}
               </td>
             </tr>
           ))}
