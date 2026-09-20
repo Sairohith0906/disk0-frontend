@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
-  ChevronRight,
-  File as FileIcon,
   Folder as FolderIcon,
-  Home,
+  File as FileIcon,
+  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getFilesApi, getRootFilesApi } from "../api/filesApi";
 
 type Folder = {
   id: string;
@@ -18,7 +14,7 @@ type Folder = {
   updated_at: string;
 };
 
-type File = {
+type FileItem = {
   id: string;
   name: string;
   mine_type: string;
@@ -29,235 +25,199 @@ type File = {
 
 type FilesProps = {
   folders: Folder[];
-  files: File[];
+  files: FileItem[];
+  loading: boolean;
+  handleFolderClick: (folder: Folder) => void;
+  handleBack: () => void;
+  canGoBack: boolean;
+  currentPath?: string;
 };
 
 const Files = ({
-  folders: initialFolders,
-  files: initialFiles,
+  folders,
+  files,
+  loading,
+  handleFolderClick,
+  handleBack,
+  canGoBack,
+  currentPath = "/",
 }: FilesProps) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const folderId = searchParams.get("folder");
-
-  const [folders, setFolders] = useState<Folder[]>(initialFolders);
-  const [files, setFiles] = useState<File[]>(initialFiles);
-  const [currentFolderName, setCurrentFolderName] = useState("Home");
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const loadFolder = async () => {
-      try {
-        setLoading(true);
-
-        // ROOT
-        if (!folderId) {
-          const response = await getRootFilesApi();
-
-          setFolders(response.folders ?? []);
-          setFiles(response.files ?? []);
-          setCurrentFolderName("Home");
-
-          return;
-        }
-
-        // CURRENT FOLDER
-        const response = await getFilesApi(folderId);
-
-        console.log("FOLDER RESPONSE:", response);
-
-        setFolders(response.folders ?? []);
-        setFiles(response.files ?? []);
-        setCurrentFolderName(response.metadata.name);
-      } catch (error) {
-        console.error("Failed to load folder:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFolder();
-  }, [folderId]);
-
-  // Open folder
-  const handleFolderClick = (folder: Folder) => {
-    if (loading) return;
-
-    router.push(`/dashboard?folder=${folder.id}`);
-  };
-
-  // UI Back button
-  const handleBack = () => {
-    if (loading) return;
-
-    router.back();
-  };
-
-  // Go directly to root
-  const handleHome = () => {
-    if (loading) return;
-
-    router.push("/dashboard");
-  };
+  const isEmpty = folders.length === 0 && files.length === 0;
 
   return (
-    <div className="px-6 pb-10">
+    <div className="w-full">
 
-      {/* =========================
-          NAVIGATION
-      ========================== */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* =====================================================
+          BACK BUTTON
+      ===================================================== */}
 
-        {/* Left side */}
-        <div className="flex items-center gap-2">
-
-          {/* Back button */}
-          {folderId && (
-            <button
-              onClick={handleBack}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-lg border border-line bg-panel px-3 py-2 text-sm text-fog transition hover:border-signal hover:text-paper disabled:cursor-wait disabled:opacity-50"
-            >
-              <ArrowLeft size={17} />
-              <span>Back</span>
-            </button>
-          )}
-
-          {/* Home */}
+      {canGoBack && (
+        <div className="mb-4">
           <button
-            onClick={handleHome}
+            type="button"
+            onClick={handleBack}
             disabled={loading}
-            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-              !folderId
-                ? "bg-panel text-paper"
-                : "text-fog hover:bg-panel hover:text-paper"
-            }`}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-fog transition hover:bg-ink hover:text-paper disabled:cursor-wait disabled:opacity-60"
           >
-            <Home size={17} />
-            <span>Home</span>
+            <ArrowLeft size={18} />
+
+            <span>
+              Back
+            </span>
           </button>
+        </div>
+      )}
 
-          {/* Current folder */}
-          {folderId && (
-            <>
-              <ChevronRight
-                size={16}
-                className="text-fog"
-              />
 
-              <span className="rounded-lg bg-panel px-3 py-2 text-sm text-paper">
-                {currentFolderName}
-              </span>
-            </>
-          )}
+      {/* =====================================================
+          CURRENT LOCATION
+      ===================================================== */}
+
+      <div className="mb-6">
+        <p className="text-sm text-fog">
+          {currentPath === "/" ? "/" : `/ ${currentPath}`}
+        </p>
+      </div>
+
+
+      {/* =====================================================
+          EMPTY
+      ===================================================== */}
+
+      {isEmpty ? (
+
+        <div className="flex min-h-[300px] items-center justify-center">
+          <p className="text-3xl text-fog">
+            Empty
+          </p>
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <span className="text-xs text-fog">
-            Loading...
-          </span>
-        )}
-      </div>
+      ) : (
 
-      {/* =========================
-          FOLDERS
-      ========================== */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-paper">
-          Folders
-        </h2>
+        <>
 
-        {folders.length === 0 ? (
-          <p className="text-sm text-fog">
-            No folders in this location.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          {/* =================================================
+              FOLDERS
+          ================================================= */}
 
-            {folders.map((folder) => (
-              <button
-                key={folder.id}
-                onClick={() => handleFolderClick(folder)}
-                disabled={loading}
-                className="group flex items-center gap-3 rounded-lg border border-line bg-panel p-4 text-left transition hover:border-signal hover:bg-ink disabled:cursor-wait disabled:opacity-60"
-              >
-                <FolderIcon
-                  size={20}
-                  className="shrink-0 text-signal"
-                />
+          {folders.length > 0 && (
+            <div>
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-paper">
-                    {folder.name}
-                  </p>
+              <div className="space-y-2">
 
-                  <p className="mt-1 text-xs text-fog">
-                    Folder
-                  </p>
-                </div>
+                {folders.map((folder) => (
 
-                <ChevronRight
-                  size={16}
-                  className="shrink-0 text-fog transition group-hover:translate-x-1 group-hover:text-signal"
-                />
-              </button>
-            ))}
+                  <button
+                    key={folder.id}
+                    type="button"
+                    onClick={() =>
+                      handleFolderClick(folder)
+                    }
+                    disabled={loading}
+                    className="group flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 text-left transition hover:border-signal hover:bg-ink disabled:cursor-wait disabled:opacity-60"
+                  >
 
-          </div>
-        )}
-      </div>
+                    {/* Folder icon */}
+                    <FolderIcon
+                      size={20}
+                      className="shrink-0 text-signal"
+                    />
 
-      {/* =========================
-          FILES
-      ========================== */}
-      <div className="mt-8">
 
-        <h2 className="mb-3 text-lg font-semibold text-paper">
-          Files
-        </h2>
+                    {/* Folder name */}
+                    <div className="min-w-0 flex-1">
 
-        {files.length === 0 ? (
-          <p className="text-sm text-fog">
-            No files in this location.
-          </p>
-        ) : (
-          <div className="space-y-2">
+                      <p className="truncate text-sm text-paper">
+                        {folder.name}
+                      </p>
 
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center justify-between rounded-lg border border-line bg-panel p-4 transition hover:bg-ink"
-              >
-                <div className="flex min-w-0 items-center gap-3">
+                    </div>
 
-                  <FileIcon
-                    size={20}
-                    className="shrink-0 text-fog"
-                  />
 
-                  <div className="min-w-0">
-                    <p className="truncate text-sm text-paper">
-                      {file.name}
-                    </p>
+                    {/* Folder type */}
+                    <div className="hidden w-32 shrink-0 text-left text-xs text-fog sm:block">
+                      Folder
+                    </div>
 
-                    <p className="mt-1 text-xs text-fog">
+
+                    {/* Arrow */}
+                    <ChevronRight
+                      size={16}
+                      className="shrink-0 text-fog transition group-hover:translate-x-1 group-hover:text-signal"
+                    />
+
+                  </button>
+
+                ))}
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* =================================================
+              FILES
+          ================================================= */}
+
+          {files.length > 0 && (
+            <div className={folders.length > 0 ? "mt-2" : ""}>
+
+              <div className="space-y-2">
+
+                {files.map((file) => (
+
+                  <div
+                    key={file.id}
+                    className="flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 transition hover:bg-ink"
+                  >
+
+                    {/* Favorite */}
+                    <div className="w-4 shrink-0 text-center text-sm text-fog">
+                      *
+                    </div>
+
+
+                    {/* File icon */}
+                    <FileIcon
+                      size={20}
+                      className="shrink-0 text-fog"
+                    />
+
+
+                    {/* File name */}
+                    <div className="min-w-0 flex-1">
+
+                      <p className="truncate text-sm text-paper">
+                        {file.name}
+                      </p>
+
+                    </div>
+
+
+                    {/* MIME type */}
+                    <div className="hidden w-40 shrink-0 truncate text-xs text-fog md:block">
                       {file.mine_type}
-                    </p>
+                    </div>
+
+
+                    {/* File size */}
+                    <div className="w-20 shrink-0 text-right text-xs text-fog">
+                      {file.size}
+                    </div>
+
                   </div>
 
-                </div>
+                ))}
 
-                <div className="ml-4 shrink-0 text-xs text-fog">
-                  {file.size}
-                </div>
               </div>
-            ))}
 
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+
+        </>
+
+      )}
 
     </div>
   );

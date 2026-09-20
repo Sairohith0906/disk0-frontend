@@ -1,29 +1,58 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+
 import {
   loginApi,
   registerApi,
 } from "../api/authApi";
+
 import { useAuthStore } from "../store/authStore";
 
 type Mode = "signin" | "signup";
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<Mode>("signin");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  /*
+   * URL is the single source of truth.
+   *
+   * /auth?mode=signin  -> signin
+   * /auth?mode=signup  -> signup
+   *
+   * If no mode is provided, default to signin.
+   */
+  const mode: Mode =
+    searchParams.get("mode") === "signup"
+      ? "signup"
+      : "signin";
+
+  function changeMode(newMode: Mode) {
+    router.replace(`/auth?mode=${newMode}`);
+  }
 
   return (
     <div className="grid min-h-screen md:grid-cols-2">
-      {/* Left side */}
+
+      {/* =====================================================
+          LEFT SIDE
+      ===================================================== */}
+
       <div className="flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-md">
 
-          {/* Mode switch */}
+          {/* =================================================
+              MODE SWITCH
+          ================================================= */}
+
           <div className="mb-8 inline-flex rounded-lg border border-line bg-panel p-1 text-sm">
+
+            {/* Sign in */}
             <button
               type="button"
-              onClick={() => setMode("signin")}
+              onClick={() => changeMode("signin")}
               className={
                 "rounded-md px-4 py-1.5 transition-colors " +
                 (mode === "signin"
@@ -34,9 +63,10 @@ export default function AuthPage() {
               Sign in
             </button>
 
+            {/* Sign up */}
             <button
               type="button"
-              onClick={() => setMode("signup")}
+              onClick={() => changeMode("signup")}
               className={
                 "rounded-md px-4 py-1.5 transition-colors " +
                 (mode === "signup"
@@ -46,28 +76,38 @@ export default function AuthPage() {
             >
               Create account
             </button>
+
           </div>
 
-          {/* Auth card */}
+          {/* =================================================
+              AUTH CARD
+          ================================================= */}
+
           {mode === "signin" ? (
             <SigninCard />
           ) : (
             <SignupCard
-              onRegistered={() => setMode("signin")}
+              onRegistered={() => changeMode("signin")}
             />
           )}
+
         </div>
       </div>
 
-      {/* Right side */}
+      {/* =====================================================
+          RIGHT SIDE
+      ===================================================== */}
+
       <div className="hidden border-l border-line bg-panel/40 md:block" />
+
     </div>
   );
 }
 
-/* =====================================================
+
+/* ============================================================
    SIGN IN
-===================================================== */
+============================================================ */
 
 function SigninCard() {
   const router = useRouter();
@@ -137,6 +177,7 @@ function SigninCard() {
         "Login failed:",
         err
       );
+
     } finally {
       setSubmitting(false);
     }
@@ -144,6 +185,7 @@ function SigninCard() {
 
   return (
     <div>
+
       <h1 className="mb-2 text-2xl">
         Welcome back
       </h1>
@@ -154,7 +196,9 @@ function SigninCard() {
 
       <form onSubmit={handleSubmit}>
 
-        {/* Identifier */}
+        {/* =================================================
+            IDENTIFIER
+        ================================================= */}
 
         <label
           htmlFor="identifier"
@@ -172,7 +216,9 @@ function SigninCard() {
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Password */}
+        {/* =================================================
+            PASSWORD
+        ================================================= */}
 
         <label
           htmlFor="password"
@@ -190,7 +236,9 @@ function SigninCard() {
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Submit */}
+        {/* =================================================
+            SUBMIT
+        ================================================= */}
 
         <button
           type="submit"
@@ -207,9 +255,10 @@ function SigninCard() {
   );
 }
 
-/* =====================================================
+
+/* ============================================================
    SIGN UP
-===================================================== */
+============================================================ */
 
 type SignupCardProps = {
   onRegistered: () => void;
@@ -218,6 +267,7 @@ type SignupCardProps = {
 function SignupCard({
   onRegistered,
 }: SignupCardProps) {
+
   const [submitting, setSubmitting] =
     useState(false);
 
@@ -255,7 +305,9 @@ function SignupCard({
       ) as HTMLInputElement
     ).value;
 
-    /* Password validation */
+    /* =======================================================
+       PASSWORD VALIDATION
+    ======================================================= */
 
     if (password !== confirmPassword) {
       alert("Passwords don't match");
@@ -293,14 +345,15 @@ function SignupCard({
         "Registration failed:",
         err
       );
+
     } finally {
       setSubmitting(false);
     }
   }
 
-  /* =====================================================
+  /* ==========================================================
      REGISTRATION SUCCESS
-  ===================================================== */
+  ========================================================== */
 
   if (registered) {
     return (
@@ -336,12 +389,13 @@ function SignupCard({
     );
   }
 
-  /* =====================================================
+  /* ==========================================================
      REGISTRATION FORM
-  ===================================================== */
+  ========================================================== */
 
   return (
     <div>
+
       <h1 className="mb-2 text-2xl">
         Join us
       </h1>
@@ -352,7 +406,9 @@ function SignupCard({
 
       <form onSubmit={handleSubmit}>
 
-        {/* Username */}
+        {/* =================================================
+            USERNAME
+        ================================================= */}
 
         <label
           htmlFor="username"
@@ -369,7 +425,9 @@ function SignupCard({
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Email */}
+        {/* =================================================
+            EMAIL
+        ================================================= */}
 
         <label
           htmlFor="email"
@@ -387,7 +445,9 @@ function SignupCard({
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Password */}
+        {/* =================================================
+            PASSWORD
+        ================================================= */}
 
         <label
           htmlFor="password"
@@ -405,7 +465,9 @@ function SignupCard({
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Confirm password */}
+        {/* =================================================
+            CONFIRM PASSWORD
+        ================================================= */}
 
         <label
           htmlFor="confirm_password"
@@ -423,7 +485,9 @@ function SignupCard({
           className="mb-3 w-full rounded-md border border-line bg-panel px-3.5 py-2.5 text-sm text-paper placeholder:text-fog/60 outline-none focus:border-signal"
         />
 
-        {/* Submit */}
+        {/* =================================================
+            SUBMIT
+        ================================================= */}
 
         <button
           type="submit"
