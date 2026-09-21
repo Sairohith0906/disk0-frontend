@@ -1,8 +1,6 @@
 "use client";
 
-import {
-  Plus,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -22,20 +20,11 @@ type Folder = {
   updated_at: string;
 };
 
-type File = {
+type FileItem = {
   id: string;
   name: string;
-  mine_type: string;
+  mime_type: string;
   size: string;
-  created_at: string;
-  updated_at: string;
-};
-
-type Metadata = {
-  id: string;
-  user_id: string;
-  parent_id: string | null;
-  name: string;
   created_at: string;
   updated_at: string;
 };
@@ -53,7 +42,7 @@ const Dashboard = () => {
   const folderId = searchParams.get("folder");
 
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   /*
@@ -66,114 +55,50 @@ const Dashboard = () => {
 
   /*
    * Parent folder ID of current folder
+   *
+   * Kept here in case you need it later.
    */
   const [parentFolderId, setParentFolderId] =
     useState<string | null>(null);
 
   const user = useAuthStore((state) => state.user);
 
-  /* =========================================================
-     LOAD ROOT OR CURRENT FOLDER
-  ========================================================= */
-
+  /*
+   * LOAD ROOT OR CURRENT FOLDER
+   */
   useEffect(() => {
     async function loadFiles() {
       try {
         setLoading(true);
-        const start = performance.now();
 
         if (folderId) {
           /*
-           * ================================================
            * LOAD CURRENT FOLDER
-           * ================================================
            */
-
           const response = await getFilesApi(folderId);
-
-          console.log(
-            "CURRENT FOLDER RESPONSE:",
-            response
-          );
-          console.log(
-            `Files API took ${(performance.now() - start).toFixed(0)}ms`
-          );
-
-          console.log(
-            "METADATA:",
-            response.metadata
-          );
-
-          console.log(
-            "CURRENT FOLDER:",
-            response.metadata?.name
-          );
-
-          console.log(
-            "PARENT FOLDER:",
-            response.metadata?.parent_id
-          );
 
           setFolders(response.folders ?? []);
           setFiles(response.files ?? []);
 
-          /*
-           * Show folder name
-           */
           setCurrentPath(
             response.metadata?.name || "/"
           );
 
-          /*
-           * Save parent folder ID
-           */
           setParentFolderId(
-            response.metadata?.parent_id || null
+            response.metadata?.parent_id ?? null
           );
-
         } else {
           /*
-           * ================================================
            * LOAD ROOT
-           * ================================================
            */
-
           const response = await getRootFilesApi();
-
-          console.log(
-            "ROOT RESPONSE:",
-            response
-          );
-
-          console.log(
-            "METADATA:",
-            response.metadata
-          );
-
-          console.log(
-            "FOLDERS:",
-            response.folders
-          );
-
-          console.log(
-            "FILES:",
-            response.files
-          );
 
           setFolders(response.folders ?? []);
           setFiles(response.files ?? []);
 
-          /*
-           * Root path
-           */
           setCurrentPath("/");
-
-          /*
-           * Root has no parent
-           */
           setParentFolderId(null);
         }
-
       } catch (error) {
         console.error(
           "Failed to fetch files:",
@@ -184,7 +109,6 @@ const Dashboard = () => {
         setFiles([]);
         setCurrentPath("/");
         setParentFolderId(null);
-
       } finally {
         setLoading(false);
       }
@@ -193,118 +117,56 @@ const Dashboard = () => {
     loadFiles();
   }, [folderId]);
 
-  /* =========================================================
-     OPEN FOLDER
-  ========================================================= */
-
+  /*
+   * OPEN FOLDER
+   */
   function handleFolderClick(folder: Folder) {
-    console.log(
-      "Opening folder:",
-      folder
-    );
-
-    /*
-     * Use push when opening a folder.
-     *
-     * This creates browser history:
-     *
-     * /dashboard
-     *      ↓
-     * /dashboard?folder=A
-     *
-     * then:
-     *
-     * /dashboard?folder=A
-     *      ↓
-     * /dashboard?folder=B
-     */
-
     router.push(
-      `/dashboard?folder=${folder.id}`
+      `/dashboard?folder=${encodeURIComponent(folder.id)}`
     );
   }
 
-  /* =========================================================
-     GO BACK
-  ========================================================= */
-
+  /*
+   * GO BACK
+   */
   function handleBack() {
-    /*
-     * If already at root there is nowhere to go back.
-     */
     if (!folderId) {
       return;
     }
 
-    /*
-     * Go back through the browser/Next.js history.
-     *
-     * Example:
-     *
-     * /dashboard
-     *      ↓
-     * /dashboard?folder=documents
-     *      ↓ Back
-     * /dashboard
-     *
-     * This prevents /root from being added
-     * as an unnecessary navigation step.
-     */
     router.back();
   }
 
-  /* =========================================================
-     GO HOME
-  ========================================================= */
-
+  /*
+   * GO HOME
+   */
   function handleHomeClick() {
     router.replace("/dashboard");
   }
 
-  /* =========================================================
-     UI
-  ========================================================= */
-
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-
-      {/* =====================================================
-          NAVBAR
-      ===================================================== */}
-
+      {/* Navbar */}
       <Navbar data={files} />
 
-      {/* =====================================================
-          DASHBOARD AREA
-      ===================================================== */}
-
+      {/* Dashboard area */}
       <div className="flex min-h-0 flex-1">
-
-        {/* ===================================================
-            SIDEBAR
-        =================================================== */}
-
+        {/* Sidebar */}
         <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-ink">
-
           {/* Upload */}
           <div className="p-5">
-
             <button
               type="button"
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-signal px-4 py-3 font-medium text-ink transition hover:opacity-90"
             >
               <Plus size={20} />
 
-              <span>
-                Upload
-              </span>
+              <span>Upload</span>
             </button>
-
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-3">
-
             {/* Home */}
             <button
               type="button"
@@ -315,7 +177,6 @@ const Dashboard = () => {
                   : "text-fog hover:bg-panel hover:text-paper"
               }`}
             >
-
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="19"
@@ -331,10 +192,7 @@ const Dashboard = () => {
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
 
-              <span>
-                Home
-              </span>
-
+              <span>Home</span>
             </button>
 
             {/* Starred */}
@@ -342,7 +200,6 @@ const Dashboard = () => {
               type="button"
               className="mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-fog transition hover:bg-panel hover:text-paper"
             >
-
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="19"
@@ -357,10 +214,7 @@ const Dashboard = () => {
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
 
-              <span>
-                Starred
-              </span>
-
+              <span>Starred</span>
             </button>
 
             {/* Recent */}
@@ -368,7 +222,6 @@ const Dashboard = () => {
               type="button"
               className="mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-fog transition hover:bg-panel hover:text-paper"
             >
-
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="19"
@@ -384,10 +237,7 @@ const Dashboard = () => {
                 <polyline points="12 7 12 12 15 14" />
               </svg>
 
-              <span>
-                Recent
-              </span>
-
+              <span>Recent</span>
             </button>
 
             {/* Divider */}
@@ -395,7 +245,6 @@ const Dashboard = () => {
 
             {/* Storage */}
             <div className="px-4">
-
               <p className="mb-3 text-xs font-medium uppercase tracking-wider text-fog">
                 Storage
               </p>
@@ -406,7 +255,6 @@ const Dashboard = () => {
                 onClick={handleHomeClick}
                 className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-sm text-fog transition hover:bg-panel hover:text-paper"
               >
-
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="19"
@@ -419,9 +267,7 @@ const Dashboard = () => {
                   strokeLinejoin="round"
                 >
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-
                   <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-
                   <line
                     x1="12"
                     y1="22.08"
@@ -430,10 +276,7 @@ const Dashboard = () => {
                   />
                 </svg>
 
-                <span>
-                  My Storage
-                </span>
-
+                <span>My Storage</span>
               </button>
 
               {/* Storage Usage */}
@@ -441,7 +284,6 @@ const Dashboard = () => {
                 type="button"
                 className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-sm text-fog transition hover:bg-panel hover:text-paper"
               >
-
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="19"
@@ -457,24 +299,17 @@ const Dashboard = () => {
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
 
-                <span>
-                  Storage Usage
-                </span>
-
+                <span>Storage Usage</span>
               </button>
-
             </div>
-
           </nav>
 
           {/* Bottom */}
           <div className="border-t border-line p-4">
-
             <button
               type="button"
               className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-fog transition hover:bg-panel hover:text-paper"
             >
-
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="19"
@@ -486,33 +321,19 @@ const Dashboard = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="3"
-                />
+                <circle cx="12" cy="12" r="3" />
 
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0-1.51-1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.6.66 1 1.27 1H21a2 2 0 1 1 0 4h-.09c-.61 0-1.13.4-1.27 1z" />
               </svg>
 
-              <span>
-                Settings
-              </span>
-
+              <span>Settings</span>
             </button>
-
           </div>
-
         </aside>
 
-        {/* ===================================================
-            MAIN CONTENT
-        =================================================== */}
-
+        {/* Main content */}
         <main className="hide-scrollbar min-w-0 flex-1 overflow-y-auto bg-panel">
-
           <div className="w-full px-6 py-6">
-
             {/* Welcome */}
             <h3 className="mb-8 text-3xl text-paper">
               Welcome, {user?.username}
@@ -534,16 +355,11 @@ const Dashboard = () => {
                 currentPath={currentPath}
               />
             )}
-
           </div>
-
         </main>
-
       </div>
-
     </div>
   );
 };
 
 export default Dashboard;
-

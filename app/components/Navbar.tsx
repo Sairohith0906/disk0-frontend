@@ -8,7 +8,7 @@ import { useAuthStore } from "../store/authStore";
 type File = {
   id: string;
   name: string;
-  mine_type: string;
+  mime_type: string;
   size: string;
   created_at: string;
   updated_at: string;
@@ -84,7 +84,7 @@ export default function Navbar({ data }: NavbarProps) {
 
                       {/* File information */}
                       <p className="mt-1 text-xs text-fog">
-                        {file.mine_type} ·{" "}
+                        {file.mime_type} ·{" "}
                         {new Date(file.updated_at).toLocaleDateString()}
                       </p>
                     </div>

@@ -3,7 +3,7 @@ import api from "./axios";
 type Metadata = {
   id: string;
   user_id: string;
-  parent_id: string;
+  parent_id: string | null;
   name: string;
   created_at: string;
   updated_at: string;
@@ -16,7 +16,7 @@ type Folder = {
   updated_at: string;
 };
 
-type File = {
+type FileItem = {
   id: string;
   name: string;
   mime_type: string;
@@ -26,24 +26,25 @@ type File = {
 };
 
 export type FoldersResponse = {
-  metadata: Metadata;
+  metadata: Metadata | null;
   folders: Folder[];
-  files: File[];
+  files: FileItem[];
 };
 
-export const getRootFilesApi = async (): Promise<FoldersResponse> => {
-  const response = await api.get<FoldersResponse>(
-    "/folders/root"
-  );
+export const getRootFilesApi =
+  async (): Promise<FoldersResponse> => {
+    const response = await api.get<FoldersResponse>(
+      "/folders/root"
+    );
 
-  return response.data;
-};
+    return response.data;
+  };
 
 export const getFilesApi = async (
   id: string
 ): Promise<FoldersResponse> => {
   const response = await api.get<FoldersResponse>(
-    `/folders/${id}`
+    `/folders/${encodeURIComponent(id)}`
   );
 
   return response.data;
