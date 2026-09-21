@@ -5,7 +5,9 @@ import {
   File as FileIcon,
   ChevronRight,
   ArrowLeft,
+  Star
 } from "lucide-react";
+import { useState } from "react";
 
 type Folder = {
   id: string;
@@ -17,7 +19,7 @@ type Folder = {
 type FileItem = {
   id: string;
   name: string;
-  mine_type: string;
+  mime_type: string;
   size: string;
   created_at: string;
   updated_at: string;
@@ -43,6 +45,25 @@ const Files = ({
   currentPath = "/",
 }: FilesProps) => {
   const isEmpty = folders.length === 0 && files.length === 0;
+  const [isStared, setIsStared] = useState(false);
+  const [starredFiles, setStarredFiles] = useState<string[]>([]);
+  const formatDate = (date: string) => {
+    if (!date) return "-";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const toggleStar = (fileId: string) => {
+    setStarredFiles((prev) =>
+      prev.includes(fileId)
+        ? prev.filter((id) => id !== fileId)
+        : [...prev, fileId]
+    );
+  };
 
   return (
     <div className="w-full">
@@ -68,7 +89,6 @@ const Files = ({
         </div>
       )}
 
-
       {/* =====================================================
           CURRENT LOCATION
       ===================================================== */}
@@ -78,7 +98,6 @@ const Files = ({
           {currentPath === "/" ? "/" : `/ ${currentPath}`}
         </p>
       </div>
-
 
       {/* =====================================================
           EMPTY
@@ -110,11 +129,9 @@ const Files = ({
                   <button
                     key={folder.id}
                     type="button"
-                    onClick={() =>
-                      handleFolderClick(folder)
-                    }
+                    onClick={() => handleFolderClick(folder)}
                     disabled={loading}
-                    className="group flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 text-left transition hover:border-signal hover:bg-ink disabled:cursor-wait disabled:opacity-60"
+                    className="group relative flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 text-left transition hover:border-signal hover:bg-ink disabled:cursor-wait disabled:opacity-60"
                   >
 
                     {/* Folder icon */}
@@ -123,22 +140,17 @@ const Files = ({
                       className="shrink-0 text-signal"
                     />
 
-
                     {/* Folder name */}
                     <div className="min-w-0 flex-1">
-
                       <p className="truncate text-sm text-paper">
                         {folder.name}
                       </p>
-
                     </div>
 
-
-                    {/* Folder type */}
-                    <div className="hidden w-32 shrink-0 text-left text-xs text-fog sm:block">
+                    {/* Folder type - exact center of box */}
+                    <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-center text-xs text-fog sm:block">
                       Folder
                     </div>
-
 
                     {/* Arrow */}
                     <ChevronRight
@@ -155,7 +167,6 @@ const Files = ({
             </div>
           )}
 
-
           {/* =================================================
               FILES
           ================================================= */}
@@ -169,14 +180,8 @@ const Files = ({
 
                   <div
                     key={file.id}
-                    className="flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 transition hover:bg-ink"
+                    className="relative flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 transition hover:bg-ink"
                   >
-
-                    {/* Favorite */}
-                    <div className="w-4 shrink-0 text-center text-sm text-fog">
-                      *
-                    </div>
-
 
                     {/* File icon */}
                     <FileIcon
@@ -184,27 +189,44 @@ const Files = ({
                       className="shrink-0 text-fog"
                     />
 
-
                     {/* File name */}
-                    <div className="min-w-0 flex-1">
-
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       <p className="truncate text-sm text-paper">
                         {file.name}
                       </p>
-
                     </div>
 
-
-                    {/* MIME type */}
-                    <div className="hidden w-40 shrink-0 truncate text-xs text-fog md:block">
-                      {file.mine_type}
+                    {/* MIME type - exact center of box */}
+                    <div className="pointer-events-none absolute left-1/2 hidden max-w-40 -translate-x-1/2 truncate text-center text-xs text-fog md:block">
+                      {file.mime_type}
                     </div>
 
+                    {/* Modified date */}
+                    <div className="hidden w-32 shrink-0 text-center text-xs text-fog lg:block">
+                      {formatDate(file.updated_at)}
+                    </div>
 
                     {/* File size */}
                     <div className="w-20 shrink-0 text-right text-xs text-fog">
                       {file.size}
                     </div>
+
+                    {/* Favorite */}
+                    <button
+                      type="button"
+                      className="flex w-8 shrink-0 items-center justify-center text-fog transition hover:text-signal"
+                      aria-label={`Favorite ${file.name}`}
+                      onClick={() => toggleStar(file.id)}
+                    >
+                      <Star
+                        size={17}
+                        className={`transition ${
+                          starredFiles.includes(file.id)
+                            ? "fill-amber-300 text-amber-300"
+                            : "fill-transparent text-fog"
+                        }`}
+                      />
+                    </button>
 
                   </div>
 

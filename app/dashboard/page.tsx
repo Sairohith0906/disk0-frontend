@@ -1,6 +1,8 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import {
+  Plus,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -78,6 +80,7 @@ const Dashboard = () => {
     async function loadFiles() {
       try {
         setLoading(true);
+        const start = performance.now();
 
         if (folderId) {
           /*
@@ -91,6 +94,9 @@ const Dashboard = () => {
           console.log(
             "CURRENT FOLDER RESPONSE:",
             response
+          );
+          console.log(
+            `Files API took ${(performance.now() - start).toFixed(0)}ms`
           );
 
           console.log(
@@ -187,7 +193,6 @@ const Dashboard = () => {
     loadFiles();
   }, [folderId]);
 
-
   /* =========================================================
      OPEN FOLDER
   ========================================================= */
@@ -201,62 +206,52 @@ const Dashboard = () => {
     /*
      * Use push when opening a folder.
      *
-     * This changes:
+     * This creates browser history:
      *
      * /dashboard
      *      ↓
      * /dashboard?folder=A
      *
-     * or
+     * then:
      *
      * /dashboard?folder=A
      *      ↓
      * /dashboard?folder=B
      */
+
     router.push(
       `/dashboard?folder=${folder.id}`
     );
   }
 
-
   /* =========================================================
-     GO BACK TO PARENT FOLDER
+     GO BACK
   ========================================================= */
 
   function handleBack() {
     /*
-     * Already at root
+     * If already at root there is nowhere to go back.
      */
     if (!folderId) {
       return;
     }
 
     /*
-     * Current folder has a parent.
+     * Go back through the browser/Next.js history.
      *
      * Example:
      *
-     * Current = Folder B
-     * Parent  = Folder A
+     * /dashboard
+     *      ↓
+     * /dashboard?folder=documents
+     *      ↓ Back
+     * /dashboard
      *
-     * Go directly to Folder A.
+     * This prevents /root from being added
+     * as an unnecessary navigation step.
      */
-    if (parentFolderId) {
-      router.replace(
-        `/dashboard?folder=${parentFolderId}`
-      );
-
-      return;
-    }
-
-    /*
-     * No parent means this is a root-level folder.
-     *
-     * Go to root.
-     */
-    router.replace("/dashboard");
+    router.back();
   }
-
 
   /* =========================================================
      GO HOME
@@ -265,7 +260,6 @@ const Dashboard = () => {
   function handleHomeClick() {
     router.replace("/dashboard");
   }
-
 
   /* =========================================================
      UI
@@ -280,13 +274,11 @@ const Dashboard = () => {
 
       <Navbar data={files} />
 
-
       {/* =====================================================
           DASHBOARD AREA
       ===================================================== */}
 
       <div className="flex min-h-0 flex-1">
-
 
         {/* ===================================================
             SIDEBAR
@@ -309,7 +301,6 @@ const Dashboard = () => {
             </button>
 
           </div>
-
 
           {/* Navigation */}
           <nav className="flex-1 px-3">
@@ -346,7 +337,6 @@ const Dashboard = () => {
 
             </button>
 
-
             {/* Starred */}
             <button
               type="button"
@@ -372,7 +362,6 @@ const Dashboard = () => {
               </span>
 
             </button>
-
 
             {/* Recent */}
             <button
@@ -401,10 +390,8 @@ const Dashboard = () => {
 
             </button>
 
-
             {/* Divider */}
             <div className="my-5 border-t border-line" />
-
 
             {/* Storage */}
             <div className="px-4">
@@ -412,7 +399,6 @@ const Dashboard = () => {
               <p className="mb-3 text-xs font-medium uppercase tracking-wider text-fog">
                 Storage
               </p>
-
 
               {/* My Storage */}
               <button
@@ -450,7 +436,6 @@ const Dashboard = () => {
 
               </button>
 
-
               {/* Storage Usage */}
               <button
                 type="button"
@@ -481,7 +466,6 @@ const Dashboard = () => {
             </div>
 
           </nav>
-
 
           {/* Bottom */}
           <div className="border-t border-line p-4">
@@ -521,7 +505,6 @@ const Dashboard = () => {
 
         </aside>
 
-
         {/* ===================================================
             MAIN CONTENT
         =================================================== */}
@@ -534,7 +517,6 @@ const Dashboard = () => {
             <h3 className="mb-8 text-3xl text-paper">
               Welcome, {user?.username}
             </h3>
-
 
             {/* Files */}
             {loading ? (
@@ -564,3 +546,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

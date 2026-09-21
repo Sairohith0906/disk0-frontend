@@ -19,7 +19,7 @@ type Folder = {
 type File = {
   id: string;
   name: string;
-  mine_type: string;
+  mime_type: string;
   size: string;
   created_at: string;
   updated_at: string;
