@@ -25,6 +25,12 @@ type FileItem = {
   updated_at: string;
 };
 
+type createFolderResponse = {
+  success : boolean,
+  result : Metadata
+}
+
+
 export type FoldersResponse = {
   metadata: Metadata | null;
   folders: Folder[];
@@ -47,5 +53,17 @@ export const getFilesApi = async (
     `/folders/${encodeURIComponent(id)}`
   );
 
+  return response.data;
+};
+
+
+export const createFolder = async(
+  parent_id : string,
+  name : string
+):Promise<createFolderResponse> =>{
+  const response = await api.post<createFolderResponse>(
+    "/folders",
+    {parent_id,name}
+  );
   return response.data;
 };

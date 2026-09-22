@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import Navbar from "../components/Navbar";
@@ -11,6 +11,7 @@ import { useAuthStore } from "../store/authStore";
 import {
   getRootFilesApi,
   getFilesApi,
+  createFolder,
 } from "../api/filesApi";
 
 type Folder = {
@@ -46,76 +47,70 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   /*
-   * Current folder name
+   * Root folder ID
    *
-   * Home      -> "/"
-   * Documents -> "Documents"
+   * Even /dashboard has a real root folder ID.
    */
-  const [currentPath, setCurrentPath] = useState("/");
+  const [rootFolderId, setRootFolderId] = useState<string>("");
 
   /*
-   * Parent folder ID of current folder
-   *
-   * Kept here in case you need it later.
+   * Current folder name
    */
-  const [parentFolderId, setParentFolderId] =
-    useState<string | null>(null);
+  const [currentPath, setCurrentPath] = useState("/");
 
   const user = useAuthStore((state) => state.user);
 
   /*
    * LOAD ROOT OR CURRENT FOLDER
    */
-  useEffect(() => {
-    async function loadFiles() {
-      try {
-        setLoading(true);
+  const loadFiles = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        if (folderId) {
-          /*
-           * LOAD CURRENT FOLDER
-           */
-          const response = await getFilesApi(folderId);
+      if (folderId) {
+        /*
+         * LOAD CURRENT FOLDER
+         */
+        const response = await getFilesApi(folderId);
 
-          setFolders(response.folders ?? []);
-          setFiles(response.files ?? []);
+        setFolders(response.folders ?? []);
+        setFiles(response.files ?? []);
 
-          setCurrentPath(
-            response.metadata?.name || "/"
-          );
+        setCurrentPath(response.metadata?.name || "/");
+      } else {
+        /*
+         * LOAD ROOT FOLDER
+         */
+        const response = await getRootFilesApi();
 
-          setParentFolderId(
-            response.metadata?.parent_id ?? null
-          );
-        } else {
-          /*
-           * LOAD ROOT
-           */
-          const response = await getRootFilesApi();
+        setFolders(response.folders ?? []);
+        setFiles(response.files ?? []);
 
-          setFolders(response.folders ?? []);
-          setFiles(response.files ?? []);
-
-          setCurrentPath("/");
-          setParentFolderId(null);
-        }
-      } catch (error) {
-        console.error(
-          "Failed to fetch files:",
-          error
-        );
-
-        setFolders([]);
-        setFiles([]);
         setCurrentPath("/");
-        setParentFolderId(null);
-      } finally {
-        setLoading(false);
-      }
-    }
 
-    loadFiles();
+        /*
+         * IMPORTANT:
+         * The root folder also has an ID.
+         */
+        setRootFolderId(response.metadata?.id ?? "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
+
+      setFolders([]);
+      setFiles([]);
+      setCurrentPath("/");
+    } finally {
+      setLoading(false);
+    }
   }, [folderId]);
+
+  /*
+   * LOAD FILES WHEN FOLDER CHANGES
+   */
+  useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
 
   /*
    * OPEN FOLDER
@@ -124,6 +119,30 @@ const Dashboard = () => {
     router.push(
       `/dashboard?folder=${encodeURIComponent(folder.id)}`
     );
+  }
+
+  /*
+   * CREATE FOLDER
+   */
+  async function handleCreateFolder(
+    parent_id: string,
+    name: string
+  ) {
+    try {
+      console.log("Creating folder:", {
+        parent_id,
+        name,
+      });
+
+      await createFolder(parent_id, name);
+
+      /*
+       * Refresh current folder after creation.
+       */
+      await loadFiles();
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+    }
   }
 
   /*
@@ -143,6 +162,17 @@ const Dashboard = () => {
   function handleHomeClick() {
     router.replace("/dashboard");
   }
+
+  /*
+   * Current folder ID
+   *
+   * If inside a folder:
+   *     folderId
+   *
+   * If at root:
+   *     rootFolderId
+   */
+  const currentFolderId = folderId ?? rootFolderId;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
@@ -268,12 +298,7 @@ const Dashboard = () => {
                 >
                   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                   <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line
-                    x1="12"
-                    y1="22.08"
-                    x2="12"
-                    y2="12"
-                  />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
                 </svg>
 
                 <span>My Storage</span>
@@ -323,7 +348,7 @@ const Dashboard = () => {
               >
                 <circle cx="12" cy="12" r="3" />
 
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0-1.51-1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.6.66 1 1.27 1H21a2 2 0 1 1 0 4h-.09c-.61 0-1.13.4-1.27 1z" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0-1.51-1V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 19.4 9c.14.6.66 1 1.27 1H21a2 2 0 1 1 0 4h-.09c-.61 0-1.13.4-1.27 1z" />
               </svg>
 
               <span>Settings</span>
@@ -353,6 +378,8 @@ const Dashboard = () => {
                 handleBack={handleBack}
                 canGoBack={!!folderId}
                 currentPath={currentPath}
+                currentFolderId={currentFolderId}
+                handleCreateFolder={handleCreateFolder}
               />
             )}
           </div>
@@ -363,3 +390,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

@@ -9,6 +9,7 @@ import {
   Plus,
   FolderPlus,
   ArrowUpDown,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -38,9 +39,13 @@ type FilesProps = {
   handleBack: () => void;
   canGoBack: boolean;
   currentPath?: string;
+  currentFolderId: string;
 
   handleAddFile?: () => void;
-  handleCreateFolder?: () => void;
+  handleCreateFolder?: (
+    parent_id: string,
+    name: string
+  ) => Promise<void>;
 };
 
 const Files = ({
@@ -51,12 +56,24 @@ const Files = ({
   handleBack,
   canGoBack,
   currentPath = "/",
+  currentFolderId,
   handleAddFile,
   handleCreateFolder,
 }: FilesProps) => {
   const [starredFiles, setStarredFiles] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>("name");
   const [sortOpen, setSortOpen] = useState(false);
+
+  /*
+   * NEW FOLDER MODAL STATE
+   *
+   * Replaces window.prompt with a controlled input so we can
+   * fully control submit behaviour (no native form submission,
+   * no page reload on Enter).
+   */
+  const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
 
   const formatDate = (date: string) => {
     if (!date) return "-";
@@ -164,6 +181,48 @@ const Files = ({
   const isEmpty =
     sortedFolders.length === 0 && sortedFiles.length === 0;
 
+  /*
+   * OPEN / CLOSE FOLDER MODAL
+   */
+  function openFolderModal() {
+    setNewFolderName("");
+    setIsFolderModalOpen(true);
+  }
+
+  function closeFolderModal() {
+    if (creatingFolder) return; // don't let them close mid-submit
+    setIsFolderModalOpen(false);
+    setNewFolderName("");
+  }
+
+  /*
+   * SUBMIT NEW FOLDER
+   *
+   * IMPORTANT: e.preventDefault() stops the native form submission
+   * that the browser triggers on Enter, which is what was causing
+   * the page to reload.
+   */
+  async function submitNewFolder(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const trimmedName = newFolderName.trim();
+
+    if (!trimmedName || !handleCreateFolder || creatingFolder) {
+      return;
+    }
+
+    try {
+      setCreatingFolder(true);
+      await handleCreateFolder(currentFolderId, trimmedName);
+      setIsFolderModalOpen(false);
+      setNewFolderName("");
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+    } finally {
+      setCreatingFolder(false);
+    }
+  }
+
   return (
     <div className="w-full">
       {/* Back button */}
@@ -208,12 +267,11 @@ const Files = ({
           {/* Create Folder */}
           <button
             type="button"
-            onClick={handleCreateFolder}
+            onClick={openFolderModal}
             disabled={loading || !handleCreateFolder}
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-fog transition hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FolderPlus size={17} />
-
             <span>Create Folder</span>
           </button>
         </div>
@@ -241,9 +299,7 @@ const Files = ({
                   setSortOpen(false);
                 }}
                 className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition hover:bg-ink ${
-                  sortOption === "name"
-                    ? "text-signal"
-                    : "text-fog"
+                  sortOption === "name" ? "text-signal" : "text-fog"
                 }`}
               >
                 Name
@@ -257,9 +313,7 @@ const Files = ({
                   setSortOpen(false);
                 }}
                 className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition hover:bg-ink ${
-                  sortOption === "size"
-                    ? "text-signal"
-                    : "text-fog"
+                  sortOption === "size" ? "text-signal" : "text-fog"
                 }`}
               >
                 Size
@@ -273,9 +327,7 @@ const Files = ({
                   setSortOpen(false);
                 }}
                 className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition hover:bg-ink ${
-                  sortOption === "modified"
-                    ? "text-signal"
-                    : "text-fog"
+                  sortOption === "modified" ? "text-signal" : "text-fog"
                 }`}
               >
                 Modified
@@ -305,10 +357,7 @@ const Files = ({
                     className="group relative flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 text-left transition hover:border-signal hover:bg-ink disabled:cursor-wait disabled:opacity-60"
                   >
                     {/* Folder icon */}
-                    <FolderIcon
-                      size={20}
-                      className="shrink-0 text-signal"
-                    />
+                    <FolderIcon size={20} className="shrink-0 text-signal" />
 
                     {/* Folder name */}
                     <div className="min-w-0 flex-1">
@@ -340,11 +389,7 @@ const Files = ({
 
           {/* Files */}
           {sortedFiles.length > 0 && (
-            <div
-              className={
-                sortedFolders.length > 0 ? "mt-2" : ""
-              }
-            >
+            <div className={sortedFolders.length > 0 ? "mt-2" : ""}>
               <div className="space-y-2">
                 {sortedFiles.map((file) => (
                   <div
@@ -352,10 +397,7 @@ const Files = ({
                     className="relative flex w-full items-center gap-3 rounded-lg border border-line bg-panel p-4 transition hover:bg-ink"
                   >
                     {/* File icon */}
-                    <FileIcon
-                      size={20}
-                      className="shrink-0 text-fog"
-                    />
+                    <FileIcon size={20} className="shrink-0 text-fog" />
 
                     {/* File name */}
                     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -401,6 +443,71 @@ const Files = ({
             </div>
           )}
         </>
+      )}
+
+      {/* New Folder Modal */}
+      {isFolderModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+          onClick={closeFolderModal}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-line bg-panel p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-medium text-paper">
+                New Folder
+              </h3>
+
+              <button
+                type="button"
+                onClick={closeFolderModal}
+                disabled={creatingFolder}
+                className="text-fog transition hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/*
+              onSubmit + e.preventDefault() inside submitNewFolder is the
+              key fix: Enter now runs our handler instead of the browser's
+              native form submission (which was reloading the page).
+            */}
+            <form onSubmit={submitNewFolder}>
+              <input
+                type="text"
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="Folder name"
+                disabled={creatingFolder}
+                className="mb-4 w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-signal disabled:cursor-not-allowed disabled:opacity-60"
+              />
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={closeFolderModal}
+                  disabled={creatingFolder}
+                  className="rounded-lg px-4 py-2 text-sm text-fog transition hover:bg-ink hover:text-paper disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={creatingFolder || !newFolderName.trim()}
+                  className="rounded-lg bg-signal px-4 py-2 text-sm font-medium text-ink transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {creatingFolder ? "Creating..." : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
